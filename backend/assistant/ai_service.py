@@ -64,13 +64,13 @@ def get_ai_config() -> dict:
     }
 
 def query_gemini_api(system_prompt: str, user_prompt: str, api_key: str = "") -> str:
-    """Calls Google Gemini API across available model endpoints."""
+    """Calls Google Gemini API across available model endpoints with priority on Gemini 2.0 Flash."""
     if not api_key:
         api_key = get_ai_config()["gemini_api_key"]
     if not api_key:
         return ""
 
-    candidate_models = ["gemini-flash-latest", "gemini-pro-latest", "gemini-2.0-flash", "gemini-1.5-flash"]
+    candidate_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
     payload = {
         "contents": [
             {
@@ -88,7 +88,7 @@ def query_gemini_api(system_prompt: str, user_prompt: str, api_key: str = "") ->
     for model in candidate_models:
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-            res = requests.post(url, json=payload, timeout=8)
+            res = requests.post(url, json=payload, timeout=6)
             if res.status_code == 200:
                 data = res.json()
                 return data["candidates"][0]["content"]["parts"][0]["text"]
@@ -100,8 +100,8 @@ def query_gemini_api(system_prompt: str, user_prompt: str, api_key: str = "") ->
 
 def query_gemini_vision(image_path: str, scan_type: str = "AUTO", api_key: str = "") -> list:
     """
-    Analyzes medical imagery with Gemini Multimodal Vision.
-    Recognizes BOTH Medicine Product Packaging and Doctor Prescriptions.
+    Analyzes medical imagery with ultra-fast Gemini 2.0 Multimodal Vision.
+    Optimizes payload size to ~150KB for sub-second network roundtrip.
     """
     if not api_key:
         api_key = get_ai_config()["gemini_api_key"]
@@ -109,11 +109,22 @@ def query_gemini_vision(image_path: str, scan_type: str = "AUTO", api_key: str =
         return []
 
     try:
-        with open(image_path, "rb") as f:
-            img_b64 = base64.b64encode(f.read()).decode("utf-8")
-
-        ext = os.path.splitext(image_path)[1].lower()
-        mime = "image/png" if ext == ".png" else "image/jpeg"
+        # Ultra-fast payload compression (resizes large photo to 1024px buffer)
+        img = cv2.imread(image_path)
+        if img is not None:
+            h, w = img.shape[:2]
+            max_d = 1024
+            if max(h, w) > max_d:
+                scale = max_d / float(max(h, w))
+                img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+            _, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), 82])
+            img_b64 = base64.b64encode(buf).decode("utf-8")
+            mime = "image/jpeg"
+        else:
+            with open(image_path, "rb") as f:
+                img_b64 = base64.b64encode(f.read()).decode("utf-8")
+            ext = os.path.splitext(image_path)[1].lower()
+            mime = "image/png" if ext == ".png" else "image/jpeg"
 
         prompt = (
             "You are a clinical pharmacologist and computer vision specialist. "
@@ -123,7 +134,7 @@ def query_gemini_vision(image_path: str, scan_type: str = "AUTO", api_key: str =
             "Output ONLY the raw JSON array without markdown fences."
         )
 
-        candidate_models = ["gemini-flash-latest", "gemini-pro-latest", "gemini-2.0-flash", "gemini-1.5-flash"]
+        candidate_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
         payload = {
             "contents": [
                 {
@@ -147,7 +158,7 @@ def query_gemini_vision(image_path: str, scan_type: str = "AUTO", api_key: str =
         for model in candidate_models:
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-                res = requests.post(url, json=payload, timeout=12)
+                res = requests.post(url, json=payload, timeout=8)
                 if res.status_code == 200:
                     text = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
                     if text.startswith("```"):
