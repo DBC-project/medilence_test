@@ -83,45 +83,54 @@ class PrescriptionUploadAndAnalyzeView(APIView):
         ocr_lines = []
 
         if file_ext in [".jpg", ".jpeg", ".png"]:
-            # 1. Run free Open-Source Neural Vision OCR (RapidOCR + OpenCV) on device
-            ocr_lines, boxes, ocr_full_text = extract_text_with_open_source_ocr(file_path)
-            raw_text = ocr_full_text
+            # 1. Run free Open-Source Neural Vision OCR (RapidOCR + OpenCV) with memory guards
+            try:
+                ocr_lines, boxes, ocr_full_text = extract_text_with_open_source_ocr(file_path)
+                raw_text = ocr_full_text
+            except Exception as e:
+                print(f"[MediSense OCR Guard]: {e}")
+                ocr_lines, raw_text = [], ""
 
-            # Create processed page record
-            processed_path = preprocess_prescription_image(file_path)
-            PrescriptionPage.objects.create(
-                prescription=rx,
-                page_number=1,
-                page_image=rx.original_file,
-            )
+            # Create processed page record safely
+            try:
+                PrescriptionPage.objects.create(
+                    prescription=rx,
+                    page_number=1,
+                    page_image=rx.original_file,
+                )
+            except Exception as e:
+                print(f"[PrescriptionPage Error]: {e}")
 
             # 2. Optional external multimodal vision augmentation if API key is configured
-            from assistant.ai_service import query_gemini_vision
-            vision_items = query_gemini_vision(file_path, scan_type=scan_category)
-            if vision_items:
-                for v_item in vision_items:
-                    med_name = v_item.get("medicine_name", "")
-                    matched_med = Medicine.objects.filter(name__icontains=med_name).first() or \
-                                 Medicine.objects.filter(generic_name__icontains=v_item.get("generic_name", "")).first()
-                    extracted_items.append({
-                        "matched_medicine": matched_med,
-                        "medicine_name": med_name,
-                        "brand_name": v_item.get("brand_name", matched_med.brand_name if matched_med else ""),
-                        "manufacturer": v_item.get("manufacturer", ""),
-                        "generic_name": v_item.get("generic_name", matched_med.generic_name if matched_med else ""),
-                        "active_ingredient": v_item.get("generic_name", ""),
-                        "strength": v_item.get("strength", ""),
-                        "dosage_form": v_item.get("dosage_form", "Tablet"),
-                        "prescribed_dose": v_item.get("prescribed_dose", "1 Tablet"),
-                        "frequency": v_item.get("frequency", "As directed"),
-                        "duration": v_item.get("duration", "As prescribed"),
-                        "route_of_administration": v_item.get("route_of_administration", "Oral"),
-                        "special_instructions": v_item.get("special_instructions", ""),
-                        "confidence_score": float(v_item.get("confidence_score", 0.95)),
-                        "ocr_uncertainty": bool(v_item.get("ocr_uncertainty", False)),
-                        "uncertainty_reason": v_item.get("uncertainty_reason", ""),
-                        "source_text": f"{med_name} {v_item.get('prescribed_dose', '')} {v_item.get('frequency', '')}",
-                    })
+            try:
+                from assistant.ai_service import query_gemini_vision
+                vision_items = query_gemini_vision(file_path, scan_type=scan_category)
+                if vision_items:
+                    for v_item in vision_items:
+                        med_name = v_item.get("medicine_name", "")
+                        matched_med = Medicine.objects.filter(name__icontains=med_name).first() or \
+                                     Medicine.objects.filter(generic_name__icontains=v_item.get("generic_name", "")).first()
+                        extracted_items.append({
+                            "matched_medicine": matched_med,
+                            "medicine_name": med_name,
+                            "brand_name": v_item.get("brand_name", matched_med.brand_name if matched_med else ""),
+                            "manufacturer": v_item.get("manufacturer", ""),
+                            "generic_name": v_item.get("generic_name", matched_med.generic_name if matched_med else ""),
+                            "active_ingredient": v_item.get("generic_name", ""),
+                            "strength": v_item.get("strength", ""),
+                            "dosage_form": v_item.get("dosage_form", "Tablet"),
+                            "prescribed_dose": v_item.get("prescribed_dose", "1 Tablet"),
+                            "frequency": v_item.get("frequency", "As directed"),
+                            "duration": v_item.get("duration", "As prescribed"),
+                            "route_of_administration": v_item.get("route_of_administration", "Oral"),
+                            "special_instructions": v_item.get("special_instructions", ""),
+                            "confidence_score": float(v_item.get("confidence_score", 0.95)),
+                            "ocr_uncertainty": bool(v_item.get("ocr_uncertainty", False)),
+                            "uncertainty_reason": v_item.get("uncertainty_reason", ""),
+                            "source_text": f"{med_name} {v_item.get('prescribed_dose', '')} {v_item.get('frequency', '')}",
+                        })
+            except Exception as e:
+                print(f"[Gemini Vision Guard]: {e}")
         elif file_ext == ".pdf":
             raw_text = extract_text_from_pdf(file_path)
             ocr_lines = [l.strip() for l in raw_text.splitlines() if l.strip()]

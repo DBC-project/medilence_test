@@ -9,6 +9,7 @@ Powered by:
 
 import os
 import re
+import gc
 import cv2
 import numpy as np
 from PIL import Image
@@ -23,13 +24,120 @@ def get_ocr_engine():
     if _RAPID_OCR_INSTANCE is None:
         try:
             from rapidocr_onnxruntime import RapidOCR
+            # Initialize with default lightweight models
             _RAPID_OCR_INSTANCE = RapidOCR()
         except Exception as e:
             print(f"[MediSense OCR] Failed to initialize RapidOCR: {e}")
             _RAPID_OCR_INSTANCE = None
     return _RAPID_OCR_INSTANCE
 
-# Common prescription frequencies and abbreviations
+def resize_image_for_low_memory(image_path: str, max_dimension: int = 1200) -> str:
+    """
+    Downscales large camera photos to a max dimension to prevent out-of-memory
+    spikes on cloud hosting (e.g. Render 512MB RAM tier).
+    """
+    if not os.path.exists(image_path):
+        return image_path
+    try:
+        img = cv2.imread(image_path)
+        if img is None:
+            return image_path
+        h, w = img.shape[:2]
+        if max(h, w) > max_dimension:
+            scale = max_dimension / float(max(h, w))
+            new_w = max(1, int(w * scale))
+            new_h = max(1, int(h * scale))
+            resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            base, ext = os.path.splitext(image_path)
+            optimized_path = f"{base}_opt.jpg"
+            cv2.imwrite(optimized_path, resized, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
+            del img, resized
+            gc.collect()
+            return optimized_path
+        del img
+    except Exception as e:
+        print(f"[MediSense Memory Guard] Resize error: {e}")
+    return image_path
+
+def preprocess_prescription_image(image_path: str, output_path: str = None) -> str:
+    """
+    Preprocesses medical imagery using OpenCV:
+    1. Grayscale conversion
+    2. CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    3. Bilateral Filter for noise smoothing while keeping text edges crisp
+    """
+    if not os.path.exists(image_path):
+        return image_path
+
+    # Ensure memory-safe sizing before OpenCV processing
+    safe_image_path = resize_image_for_low_memory(image_path, max_dimension=1200)
+
+    try:
+        img = cv2.imread(safe_image_path)
+        if img is None:
+            return safe_image_path
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        enhanced = clahe.apply(gray)
+        filtered = cv2.bilateralFilter(enhanced, 7, 50, 50)
+
+        if not output_path:
+            base, ext = os.path.splitext(safe_image_path)
+            output_path = f"{base}_processed{ext}"
+
+        cv2.imwrite(output_path, filtered)
+        del img, gray, enhanced, filtered
+        gc.collect()
+        return output_path
+    except Exception as e:
+        print(f"[MediSense Image Preprocess] Error: {e}")
+        return safe_image_path
+
+def extract_text_with_open_source_ocr(image_path: str):
+    """
+    Executes free open-source on-device AI vision (RapidOCR) on image.
+    Uses memory-safe downscaling to remain strictly within 512MB RAM containers.
+    """
+    if not os.path.exists(image_path):
+        return [], [], ""
+
+    # Downscale high-res photos to prevent worker OOM on Render
+    safe_path = resize_image_for_low_memory(image_path, max_dimension=1200)
+
+    lines = []
+    boxes = []
+
+    try:
+        engine = get_ocr_engine()
+        if engine:
+            result, elapse = engine(safe_path)
+            if result:
+                for item in result:
+                    box, txt, conf = item[0], item[1].strip(), float(item[2])
+                    if txt and conf > 0.35:
+                        lines.append(txt)
+                        boxes.append({"text": txt, "confidence": conf, "box": box})
+
+            # If very few lines detected, try preprocessed contrast image
+            if len(lines) < 2:
+                processed_path = preprocess_prescription_image(safe_path)
+                if os.path.exists(processed_path) and processed_path != safe_path:
+                    res2, _ = engine(processed_path)
+                    if res2:
+                        for item in res2:
+                            txt = item[1].strip()
+                            conf = float(item[2])
+                            if txt and conf > 0.35 and txt not in lines:
+                                lines.append(txt)
+                                boxes.append({"text": txt, "confidence": conf, "box": item[0]})
+    except Exception as e:
+        print(f"[MediSense Open-Source OCR] Extraction warning: {e}")
+    finally:
+        gc.collect()
+
+    full_text = "\n".join(lines)
+    return lines, boxes, full_text
 MEDICAL_FREQUENCY_MAP = {
     "od": "Once daily",
     "1-0-0": "Once daily (Morning)",
@@ -60,83 +168,7 @@ TOPICAL_AND_PACKAGING_BRANDS = [
     "torrent", "lupin", "zydus", "sanofi", "pfizer", "apex", "wallace"
 ]
 
-def preprocess_prescription_image(image_path: str, output_path: str = None) -> str:
-    """
-    Preprocesses medical imagery using OpenCV:
-    1. Grayscale conversion
-    2. CLAHE (Contrast Limited Adaptive Histogram Equalization)
-    3. Bilateral Filter for noise smoothing while keeping text edges crisp
-    """
-    if not os.path.exists(image_path):
-        return image_path
 
-    try:
-        img = cv2.imread(image_path)
-        if img is None:
-            return image_path
-
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        enhanced = clahe.apply(gray)
-        filtered = cv2.bilateralFilter(enhanced, 9, 75, 75)
-
-        if not output_path:
-            base, ext = os.path.splitext(image_path)
-            output_path = f"{base}_processed{ext}"
-
-        cv2.imwrite(output_path, filtered)
-        return output_path
-    except Exception as e:
-        print(f"[MediSense Image Preprocess] Error: {e}")
-        return image_path
-
-def extract_text_with_open_source_ocr(image_path: str):
-    """
-    Executes free open-source on-device AI vision (RapidOCR) on image.
-    Returns:
-    - lines: list of extracted text strings
-    - boxes: list of detected text bounding boxes and confidence scores
-    - full_text: concatenated string of all detected text
-    """
-    if not os.path.exists(image_path):
-        return [], [], ""
-
-    engine = get_ocr_engine()
-    if not engine:
-        return [], [], ""
-
-    lines = []
-    boxes = []
-
-    try:
-        # Pass 1: Run on original image
-        result, elapse = engine(image_path)
-        if result:
-            for item in result:
-                # item: [box_coordinates, text, confidence]
-                box, txt, conf = item[0], item[1].strip(), float(item[2])
-                if txt and conf > 0.40:
-                    lines.append(txt)
-                    boxes.append({"text": txt, "confidence": conf, "box": box})
-
-        # Pass 2: If very few lines detected, try preprocessed contrast image
-        if len(lines) < 2:
-            processed_path = preprocess_prescription_image(image_path)
-            if os.path.exists(processed_path) and processed_path != image_path:
-                res2, _ = engine(processed_path)
-                if res2:
-                    for item in res2:
-                        txt = item[1].strip()
-                        conf = float(item[2])
-                        if txt and conf > 0.40 and txt not in lines:
-                            lines.append(txt)
-                            boxes.append({"text": txt, "confidence": conf, "box": item[0]})
-
-    except Exception as e:
-        print(f"[MediSense Open-Source OCR] Extraction error: {e}")
-
-    full_text = "\n".join(lines)
-    return lines, boxes, full_text
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """Extracts text from PDF prescriptions."""

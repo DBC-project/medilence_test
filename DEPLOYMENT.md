@@ -43,7 +43,7 @@ This application is divided into:
    - **Root Directory**: `backend`
    - **Runtime**: `Python 3`
    - **Build Command**: `./build.sh` (or `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py seed_large_medicine_dataset`)
-   - **Start Command**: `gunicorn medisense.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
+   - **Start Command**: `gunicorn medisense.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 180`
 4. Add **Environment Variables**:
    - `DJANGO_SECRET_KEY`: *(Generate a random 50+ character string)*
    - `DJANGO_DEBUG`: `False`
