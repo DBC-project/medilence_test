@@ -6,6 +6,8 @@ food instructions, storage, and interaction rules.
 """
 
 from django.core.management.base import BaseCommand
+from datetime import date
+from core.models import User, PatientProfile, ProfessionalProfile
 from medicines.models import Medicine, MedicineIngredient, MedicineBrand, DrugInteraction
 
 class Command(BaseCommand):
@@ -13,6 +15,70 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write("Feeding Large Clinical Medicine Dataset into MediSense AI...")
+
+        # Create/Verify standard test accounts
+        admin_user, _ = User.objects.get_or_create(
+            email="admin@medisense.ai",
+            defaults={
+                "username": "admin",
+                "first_name": "MediSense",
+                "last_name": "Admin",
+                "role": User.Role.ADMIN,
+                "is_staff": True,
+                "is_superuser": True,
+            }
+        )
+        admin_user.set_password("Admin@123456")
+        admin_user.save()
+
+        doctor_user, _ = User.objects.get_or_create(
+            email="doctor@medisense.ai",
+            defaults={
+                "username": "dr_thomas",
+                "first_name": "Dr. Thomas",
+                "last_name": "Mathew",
+                "role": User.Role.PROFESSIONAL,
+            }
+        )
+        doctor_user.set_password("Doctor@123456")
+        doctor_user.save()
+
+        ProfessionalProfile.objects.update_or_create(
+            user=doctor_user,
+            defaults={
+                "medical_license_number": "KMC-49281",
+                "specialization": "Internal Medicine / General Physician",
+                "qualifications": "MBBS, MD (General Medicine)",
+                "hospital_or_clinic": "Cochin Medical Center, Kerala",
+                "years_of_experience": 14,
+                "is_verified": True,
+                "verification_notes": "Verified against Medical Council registry.",
+            }
+        )
+
+        patient_user, _ = User.objects.get_or_create(
+            email="patient@medisense.ai",
+            defaults={
+                "username": "rahul_sharma",
+                "first_name": "Rahul",
+                "last_name": "Sharma",
+                "role": User.Role.PATIENT,
+                "language_preference": "en",
+            }
+        )
+        patient_user.set_password("Patient@123456")
+        patient_user.save()
+
+        PatientProfile.objects.update_or_create(
+            user=patient_user,
+            defaults={
+                "date_of_birth": date(1988, 5, 14),
+                "gender": "Male",
+                "blood_group": "B+",
+                "allergies": ["Penicillin (mild rash)"],
+                "chronic_conditions": ["Mild Hypertension"],
+            }
+        )
 
         medicines_data = [
             # -------------------------------------------------------------

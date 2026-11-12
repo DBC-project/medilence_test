@@ -14,6 +14,12 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const handleAutoFill = (fillEmail: string, fillPass: string) => {
+    setEmail(fillEmail);
+    setPassword(fillPass);
+    setError("");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -99,6 +105,102 @@ export const LoginPage: React.FC = () => {
             <ArrowRight className="h-4 w-4" />
           </button>
         </form>
+
+        {/* 1-Click Demo & Testing Credentials for All 3 Roles */}
+        <div className="rounded-2xl border border-teal-200/90 bg-teal-50/60 p-4 space-y-2.5 shadow-xs">
+          <div className="flex items-center justify-between pb-1">
+            <span className="text-xs font-extrabold text-teal-950 flex items-center gap-1.5">
+              <UserCheck className="h-4 w-4 text-teal-600" />
+              Demo & Testing Accounts (Click to Auto-Fill):
+            </span>
+            <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider bg-teal-100/70 px-2 py-0.5 rounded-full">
+              3 Roles
+            </span>
+          </div>
+
+          <div className="grid gap-2">
+            {/* 1. Patient User */}
+            <button
+              type="button"
+              onClick={() => handleAutoFill("patient@medisense.ai", "Patient@123456")}
+              className={`w-full text-left rounded-xl border p-2.5 transition-all hover:shadow-xs group ${
+                email === "patient@medisense.ai"
+                  ? "border-emerald-500 bg-emerald-50/70 ring-1 ring-emerald-500"
+                  : "border-slate-200 bg-white hover:border-emerald-300"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    Patient User
+                  </span>
+                  <span className="font-bold text-xs text-slate-800">patient@medisense.ai</span>
+                </div>
+                <span className="text-[11px] font-bold text-emerald-700 group-hover:underline">
+                  Auto-Fill
+                </span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Pass: <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-800">Patient@123456</code></span>
+                <span className="text-slate-400">Scans, Reminders, AI Chat</span>
+              </div>
+            </button>
+
+            {/* 2. Medical Professional */}
+            <button
+              type="button"
+              onClick={() => handleAutoFill("doctor@medisense.ai", "Doctor@123456")}
+              className={`w-full text-left rounded-xl border p-2.5 transition-all hover:shadow-xs group ${
+                email === "doctor@medisense.ai"
+                  ? "border-sky-500 bg-sky-50/70 ring-1 ring-sky-500"
+                  : "border-slate-200 bg-white hover:border-sky-300"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800 flex items-center gap-1">
+                    <Stethoscope className="h-3 w-3" /> Doctor User
+                  </span>
+                  <span className="font-bold text-xs text-slate-800">doctor@medisense.ai</span>
+                </div>
+                <span className="text-[11px] font-bold text-sky-700 group-hover:underline">
+                  Auto-Fill
+                </span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Pass: <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-800">Doctor@123456</code></span>
+                <span className="text-slate-400">Review Portal, Prescriptions</span>
+              </div>
+            </button>
+
+            {/* 3. Platform Administrator */}
+            <button
+              type="button"
+              onClick={() => handleAutoFill("admin@medisense.ai", "Admin@123456")}
+              className={`w-full text-left rounded-xl border p-2.5 transition-all hover:shadow-xs group ${
+                email === "admin@medisense.ai"
+                  ? "border-purple-500 bg-purple-50/70 ring-1 ring-purple-500"
+                  : "border-slate-200 bg-white hover:border-purple-300"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800 flex items-center gap-1">
+                    <Shield className="h-3 w-3" /> Admin User
+                  </span>
+                  <span className="font-bold text-xs text-slate-800">admin@medisense.ai</span>
+                </div>
+                <span className="text-[11px] font-bold text-purple-700 group-hover:underline">
+                  Auto-Fill
+                </span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Pass: <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-800">Admin@123456</code></span>
+                <span className="text-slate-400">Governance, Drug DB, Logs</span>
+              </div>
+            </button>
+          </div>
+        </div>
 
         <p className="text-center text-xs text-slate-500">
           Don't have an account?{" "}

@@ -162,32 +162,37 @@ def query_gemini_vision(image_path: str, scan_type: str = "AUTO", api_key: str =
     return []
 
 def query_groq_api(system_prompt: str, user_prompt: str, api_key: str = "") -> str:
-    """Calls Groq Cloud API (Free Tier - Llama 3.3 70B, 30 RPM free)."""
+    """Calls Groq Cloud API across available high-speed models."""
     if not api_key:
         api_key = get_ai_config()["groq_api_key"]
     if not api_key:
         return ""
 
-    try:
-        url = "https://api.groq.com/openai/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": "llama-3.3-70b-versatile",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "temperature": 0.2,
-            "max_tokens": 1024,
-        }
-        res = requests.post(url, headers=headers, json=payload, timeout=12)
-        if res.status_code == 200:
-            return res.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        print(f"Groq API call failed: {e}")
+    candidate_models = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile"]
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    for model in candidate_models:
+        try:
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.2,
+                "max_tokens": 1024,
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=10)
+            if res.status_code == 200:
+                return res.json()["choices"][0]["message"]["content"]
+            elif res.status_code in (404, 429):
+                continue
+        except Exception:
+            continue
     return ""
 
 def query_pollinations_api(system_prompt: str, user_prompt: str) -> str:

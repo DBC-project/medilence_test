@@ -36,3 +36,4 @@ backend/media/prescriptions/processed/*
 *.swo
 .DS_Store
 Thumbs.db
+
