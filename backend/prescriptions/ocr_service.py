@@ -16,7 +16,7 @@ from PIL import Image
 import pypdf
 from medicines.models import Medicine, MedicineBrand, MedicineIngredient
 
-# Global cached RapidOCR instance for instant inference
+# On-demand RapidOCR instance for low memory footprint
 _RAPID_OCR_INSTANCE = None
 
 def get_ocr_engine():
@@ -24,12 +24,22 @@ def get_ocr_engine():
     if _RAPID_OCR_INSTANCE is None:
         try:
             from rapidocr_onnxruntime import RapidOCR
-            # Initialize with default lightweight models
             _RAPID_OCR_INSTANCE = RapidOCR()
         except Exception as e:
             print(f"[MediSense OCR] Failed to initialize RapidOCR: {e}")
             _RAPID_OCR_INSTANCE = None
     return _RAPID_OCR_INSTANCE
+
+def free_ocr_engine():
+    """Immediately frees ONNX neural network models from RAM to prevent leaks."""
+    global _RAPID_OCR_INSTANCE
+    if _RAPID_OCR_INSTANCE is not None:
+        try:
+            del _RAPID_OCR_INSTANCE
+        except Exception:
+            pass
+        _RAPID_OCR_INSTANCE = None
+    gc.collect()
 
 def resize_image_for_low_memory(image_path: str, max_dimension: int = 1200) -> str:
     """
@@ -134,6 +144,14 @@ def extract_text_with_open_source_ocr(image_path: str):
     except Exception as e:
         print(f"[MediSense Open-Source OCR] Extraction warning: {e}")
     finally:
+        # Immediately release ONNX neural network and free RAM back to OS
+        free_ocr_engine()
+        # Clean up temporary resized file if created
+        if safe_path != image_path and os.path.exists(safe_path):
+            try:
+                os.remove(safe_path)
+            except Exception:
+                pass
         gc.collect()
 
     full_text = "\n".join(lines)
