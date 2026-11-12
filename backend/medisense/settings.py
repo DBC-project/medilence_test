@@ -72,10 +72,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "medisense.wsgi.application"
 
-# Database: PostgreSQL if USE_POSTGRES is true, fallback to SQLite for local development
-DATABASE_URL = os.environ.get("DATABASE_URL")
-USE_POSTGRES = os.environ.get("USE_POSTGRES", "False").lower() in ("true", "1")
-if DATABASE_URL and USE_POSTGRES:
+# Database: Auto-detect PostgreSQL when DATABASE_URL is set, otherwise fallback to SQLite
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+if DATABASE_URL and (DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://")):
     DATABASES = {
         "default": dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
     }
