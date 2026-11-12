@@ -4,9 +4,8 @@
   "private": true,
   "description": "MediSense AI - Complete AI-Powered Prescription & Medicine Intelligence Platform",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
+    "build": "node -e \"const { existsSync } = require('fs'), { execSync } = require('child_process'); if (existsSync('frontend')) { execSync('npm run build --prefix frontend', { stdio: 'inherit' }); } else { execSync('npm run build', { stdio: 'inherit' }); }\"",
     "start": "cd frontend && npm run preview",
     "dev": "cd frontend && npm run dev"
   }
 }
-
