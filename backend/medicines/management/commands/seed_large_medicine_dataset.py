@@ -1250,6 +1250,68 @@ class Command(BaseCommand):
                     {"name": "Tocopheryl Acetate", "strength": "400 mg"}
                 ],
                 "brands": ["Evion 400 (P&G Health)", "E-Vite (Dr. Reddy's)"]
+            },
+            {
+                "name": "Minimalist Maleic Bond Repair Complex 3.5% Shampoo",
+                "brand_name": "Minimalist",
+                "generic_name": "Maleic Acid, Transglutaminase and Amino Acids (Bond Repair Complex 3.5%)",
+                "medicine_category": "Dermatological Hair and Scalp Care Formulation",
+                "dosage_form": "Therapeutic Shampoo",
+                "strength": "Maleic Bond Repair Complex 3.5%",
+                "common_uses": "Repair and protection of damaged, brittle, chemically treated, or heat-styled hair bonds; strengthens hair shaft fibers and reduces breakage.",
+                "common_uses_ml": "കേടുവന്ന മുടിയിഴകളെ ബലപ്പെടുത്താനും പൊട്ടിപ്പോകുന്നത് തടയാനുമുള്ള തെറാപ്യൂട്ടിക് ഷാംപൂ. മുടിയുടെ ആരോഗ്യം വീണ്ടെടുക്കാൻ സഹായിക്കുന്നു.",
+                "how_it_works": "Maleic acid combined with amino acids cross-links and rebuilds broken keratin disulfide bonds damaged by chemical treatments and styling.",
+                "how_it_works_ml": "മുടിയിലെ കെരാറ്റിൻ ബോണ്ടുകളെ ശക്തിപ്പെടുത്തി മുടി കൊഴിച്ചിലും പൊട്ടലും കുറയ്ക്കുന്നു.",
+                "common_side_effects": ["Mild scalp dryness if overused"],
+                "common_side_effects_ml": ["കൂടുതലായി ഉപയോഗിച്ചാൽ തലയോട്ടിയിൽ നേരിയ വരൾച്ച"],
+                "serious_warnings": "For external topical hair and scalp application only. Avoid contact with eyes. In case of accidental contact, rinse thoroughly with clear water.",
+                "serious_warnings_ml": "ബാഹ്യ ഉപയോഗത്തിന് മാത്രം (തലയോട്ടിയിലും മുടിയിലും). കണ്ണിൽ വീഴാതെ ശ്രദ്ധിക്കുക. കണ്ണിൽ വീണാൽ ഉടൻ ധാരാളം വെള്ളമൊഴിച്ച് കഴുകുക.",
+                "precautions": "Do not ingest. Keep out of reach of children.",
+                "precautions_ml": "കഴിക്കാൻ പാടില്ല. കുട്ടികൾക്ക് ലഭ്യമാകാതെ സൂക്ഷിക്കുക.",
+                "contraindications": "Hypersensitivity to maleic acid or formulation excipients.",
+                "contraindications_ml": "അലർജിയുള്ളവർ ഉപയോഗിക്കരുത്.",
+                "food_precautions": "External application only. Apply to wet scalp and hair, lather gently for 2 minutes, and rinse thoroughly.",
+                "food_precautions_ml": "ബാഹ്യ ഉപയോഗം മാത്രം. നനഞ്ഞ തലയോട്ടിയിലും മുടിയിലും തേച്ച് 2 മിനിറ്റിനു ശേഷം നന്നായി കഴുകിക്കളയുക.",
+                "storage_info": "Store below 30°C in a cool, dry place away from direct sunlight.",
+                "missed_dose_info": "Use during regular hair wash routine 2-3 times per week.",
+                "missed_dose_info_ml": "ആഴ്ചയിൽ 2-3 തവണ സാധാരണ ഷാംപൂ ചെയ്യുന്നതുപോലെ ഉപയോഗിക്കുക.",
+                "verified_source": "Minimalist Hair Science / Dermatological Formulation",
+                "ingredients": [
+                    {"name": "Maleic Acid", "strength": "Bond Repair Complex 3.5%"},
+                    {"name": "Transglutaminase & Amino Acids", "strength": "Keratin Repair"}
+                ],
+                "brands": ["Minimalist Maleic Bond Repair Shampoo (Minimalist)"]
+            },
+            {
+                "name": "Scalpe Pro Anti-Dandruff Shampoo",
+                "brand_name": "Scalpe Pro",
+                "generic_name": "Ketoconazole and Zinc Pyrithione (ZPTO)",
+                "medicine_category": "Topical Antifungal and Anti-Dandruff Scalp Treatment",
+                "dosage_form": "Therapeutic Shampoo",
+                "strength": "Ketoconazole 2% + Zinc Pyrithione 1%",
+                "common_uses": "Treatment and prevention of dandruff, seborrheic dermatitis of the scalp, itching, and fungal scalp scaling.",
+                "common_uses_ml": "താരൻ, തലയോട്ടിയിലെ ചൊറിച്ചിൽ, ഫംഗസ് അണുബാധ എന്നിവ തടയാനും ചികിൽസിക്കാനുമുള്ള മെഡിക്കേറ്റഡ് ഷാംപൂ.",
+                "how_it_works": "Ketoconazole is a broad-spectrum imidazole antifungal that eradicates Malassezia yeast on the scalp. Zinc Pyrithione suppresses fungal hyperproliferation and regulates sebum.",
+                "how_it_works_ml": "താരന് കാരണമാകുന്ന ഫംഗസിനെ നശിപ്പിക്കുകയും തലയോട്ടിയിലെ ചൊറിച്ചിൽ മാറ്റുകയും ചെയ്യുന്നു.",
+                "common_side_effects": ["Mild scalp irritation", "Temporary hair texture change"],
+                "common_side_effects_ml": ["നേരിയ ചൊറിച്ചിൽ", "മുടി വരണ്ടതാകൽ"],
+                "serious_warnings": "For external topical scalp use only. Do not swallow. Avoid eye contact.",
+                "serious_warnings_ml": "തലയോട്ടിയിൽ മാത്രം ഉപയോഗിക്കുക. ഉള്ളിൽ കഴിക്കരുത്. കണ്ണിൽ വീഴാതെ സൂക്ഷിക്കുക.",
+                "precautions": "Leave on scalp for 3 to 5 minutes before rinsing off completely.",
+                "precautions_ml": "തേച്ചുപിടിപ്പിച്ച് 3-5 മിനിറ്റ് കഴിഞ്ഞ് കഴുകിക്കളയുക.",
+                "contraindications": "Known hypersensitivity to ketoconazole or pyrithione.",
+                "contraindications_ml": "കെറ്റോകോണസോൾ അലർജിയുള്ളവർ ഉപയോഗിക്കരുത്.",
+                "food_precautions": "Apply to wet hair and scalp. Massage gently for 3-5 minutes, then rinse with plenty of water.",
+                "food_precautions_ml": "നനഞ്ഞ തലയോട്ടിയിൽ തേച്ച് 3-5 മിനിറ്റ് വെച്ച ശേഷം നന്നായി കഴുകുക.",
+                "storage_info": "Store below 25°C protected from light.",
+                "missed_dose_info": "Use twice weekly for 2 to 4 weeks.",
+                "missed_dose_info_ml": "ആഴ്ചയിൽ രണ്ടുതവണ വീതം 2-4 ആഴ്ച ഉപയോഗിക്കുക.",
+                "verified_source": "CDSCO / Glenmark Pharmaceuticals",
+                "ingredients": [
+                    {"name": "Ketoconazole", "strength": "2% w/v"},
+                    {"name": "Zinc Pyrithione (ZPTO)", "strength": "1% w/v"}
+                ],
+                "brands": ["Scalpe Pro (Glenmark)", "Nizoral Shampoo (Janssen)", "Sebizole (Dr. Reddy's)"]
             }
         ]
 

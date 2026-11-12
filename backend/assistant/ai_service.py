@@ -128,9 +128,14 @@ def query_gemini_vision(image_path: str, scan_type: str = "AUTO", api_key: str =
             mime = "image/png" if ext == ".png" else "image/jpeg"
 
         prompt = (
-            "You are a clinical pharmacologist and computer vision specialist. "
-            "Examine this medical image (doctor prescription or medicine product packaging/strip/tube/bottle). "
-            "Extract every medicine into a clean JSON array of objects with keys: "
+            "You are a clinical pharmacologist and medical packaging intelligence specialist. "
+            "Examine this image carefully (which may be a doctor prescription slip or a medicine product packaging, tube, bottle, strip, shampoo, cleanser, or cream). "
+            "Accurately read the exact brand name, product title, and active formulation visible on the container. "
+            "CRITICAL RULES: "
+            "1. If the item is a tube or bottle for a hair shampoo, conditioner, face wash, cleanser, cream, gel, or ointment, set dosage_form accurately to 'Therapeutic Shampoo', 'Hair Conditioner', 'Face Wash', 'Gel', 'Cream', etc. "
+            "2. Under NO circumstances should topical hair or skincare products (such as shampoos, face washes, or serums) be classified as oral tablets or capsules. "
+            "3. Set route_of_administration accurately to 'Topical (Hair & Scalp)' for hair/shampoo products, or 'Topical' for skincare. "
+            "4. Extract every medicine into a clean JSON array of objects with keys: "
             "medicine_name, brand_name, generic_name, strength, dosage_form, manufacturer, prescribed_dose, frequency, duration, route_of_administration, special_instructions, confidence_score, ocr_uncertainty, uncertainty_reason. "
             "Output ONLY the raw JSON array without markdown fences."
         )

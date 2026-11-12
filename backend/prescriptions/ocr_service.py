@@ -238,70 +238,34 @@ def parse_medical_scan_data(raw_text: str, scan_category: str = "AUTO", ocr_line
     if is_product_packaging:
         matched_med = None
         matched_score = 0.95
-        detected_brand = "The Derma Co." if ("derma" in full_text_lower or "dermaco" in full_text_lower) else ""
         detected_name = ""
         detected_generics = []
-        detected_form = "Topical Cleanser / Face Wash"
         detected_strength = ""
-        route = "Topical"
 
-        norm_full = re.sub(r'[^a-z0-9]', '', full_text_lower)
-
-        # 1. Check for specific known formulations in full text
-        for med in db_medicines:
-            # Check normalized brand match
-            if med.brand_name:
-                norm_brand = re.sub(r'[^a-z0-9]', '', med.brand_name.lower())
-                if norm_brand and (norm_brand in norm_full or norm_brand in full_text_lower):
-                    matched_med = med
-                    break
-            # Check brand variants
-            for b in med.brands.all():
-                norm_b = re.sub(r'[^a-z0-9]', '', b.brand_name.lower())
-                if norm_b and (norm_b in norm_full or norm_b in full_text_lower):
-                    matched_med = med
-                    break
-            if matched_med:
+        # 1. Detect Brand
+        detected_brand = ""
+        for b_cand in TOPICAL_AND_PACKAGING_BRANDS:
+            if b_cand in full_text_lower:
+                if "minimalist" in b_cand:
+                    detected_brand = "Minimalist"
+                elif "derma" in b_cand:
+                    detected_brand = "The Derma Co."
+                else:
+                    detected_brand = b_cand.title()
                 break
-            # Check normalized medicine name tokens (e.g. salicinamide, augmentin, dolo)
-            med_tokens = [re.sub(r'[^a-z0-9]', '', t) for t in med.name.lower().split() if len(t) > 4]
-            if any(tok in norm_full for tok in med_tokens if len(tok) > 4):
-                matched_med = med
-                break
-            # Check generic composition match
-            if med.generic_name:
-                gen_tokens = [re.sub(r'[^a-z0-9]', '', t) for t in med.generic_name.lower().split() if len(t) > 5]
-                if any(tok in norm_full for tok in gen_tokens if len(tok) > 5):
-                    matched_med = med
-                    break
 
-        # 2. Composition Extraction
-        if "salicyl" in full_text_lower or "sali-cinamide" in full_text_lower or "salicylic" in full_text_lower:
-            detected_generics.append("Salicylic Acid")
-        if "niacinamide" in full_text_lower or "sali-cinamide" in full_text_lower or "nicotinamide" in full_text_lower:
-            detected_generics.append("Niacinamide")
-        if "benzoyl" in full_text_lower or "peroxide" in full_text_lower:
-            detected_generics.append("Benzoyl Peroxide")
-        if "ketoconazole" in full_text_lower:
-            detected_generics.append("Ketoconazole")
-        if "clindamycin" in full_text_lower:
-            detected_generics.append("Clindamycin")
-        if "paracetamol" in full_text_lower or "acetaminophen" in full_text_lower:
-            detected_generics.append("Paracetamol")
-        if "amoxicillin" in full_text_lower:
-            detected_generics.append("Amoxicillin")
-
-        # 3. Detect strengths (e.g. 2%, 1%, 650 mg, 500 mg)
-        pct_matches = re.findall(r'(\d+(?:\.\d+)?\s*%)', " ".join(ocr_lines))
-        mg_matches = re.findall(r'(\d+(?:\.\d+)?\s*(?:mg|g|ml))', " ".join(ocr_lines), re.IGNORECASE)
-        if pct_matches:
-            detected_strength = " + ".join(pct_matches)
-        elif mg_matches:
-            detected_strength = mg_matches[0]
-
-        # 4. Detect dosage form
-        if "face wash" in full_text_lower or "wash" in full_text_lower or "cleanser" in full_text_lower:
+        # 2. Detect Dosage Form & Route (Strict topical vs oral disambiguation)
+        if "shampoo" in full_text_lower or "hair" in full_text_lower or "scalp" in full_text_lower:
+            detected_form = "Therapeutic Shampoo"
+            route = "Topical (Hair & Scalp)"
+        elif "conditioner" in full_text_lower:
+            detected_form = "Hair Conditioner / Treatment"
+            route = "Topical (Hair & Scalp)"
+        elif "face wash" in full_text_lower or "wash" in full_text_lower or "cleanser" in full_text_lower:
             detected_form = "Face Wash / Topical Cleanser"
+            route = "Topical"
+        elif "serum" in full_text_lower:
+            detected_form = "Topical Serum"
             route = "Topical"
         elif "gel" in full_text_lower:
             detected_form = "Gel"
@@ -309,8 +273,8 @@ def parse_medical_scan_data(raw_text: str, scan_category: str = "AUTO", ocr_line
         elif "cream" in full_text_lower:
             detected_form = "Cream"
             route = "Topical"
-        elif "lotion" in full_text_lower or "shampoo" in full_text_lower:
-            detected_form = "Lotion / Shampoo"
+        elif "lotion" in full_text_lower:
+            detected_form = "Lotion"
             route = "Topical"
         elif "ointment" in full_text_lower:
             detected_form = "Ointment"
@@ -321,8 +285,88 @@ def parse_medical_scan_data(raw_text: str, scan_category: str = "AUTO", ocr_line
         elif "tablet" in full_text_lower:
             detected_form = "Tablet"
             route = "Oral"
+        elif "capsule" in full_text_lower:
+            detected_form = "Capsule"
+            route = "Oral"
+        else:
+            detected_form = "Topical Cleanser / Formulation"
+            route = "Topical"
 
-        # 5. Formulate final medicine name
+        norm_full = re.sub(r'[^a-z0-9]', '', full_text_lower)
+
+        # 3. Detect Active Ingredients
+        if "maleic" in full_text_lower or "bond repair" in full_text_lower:
+            detected_generics.append("Maleic Bond Repair Complex")
+        if "amino acid" in full_text_lower:
+            detected_generics.append("Amino Acid Complex")
+        if "salicyl" in full_text_lower or "sali-cinamide" in full_text_lower or "salicylic" in full_text_lower:
+            detected_generics.append("Salicylic Acid")
+        if "niacinamide" in full_text_lower or "sali-cinamide" in full_text_lower or "nicotinamide" in full_text_lower:
+            detected_generics.append("Niacinamide")
+        if "benzoyl" in full_text_lower or "peroxide" in full_text_lower:
+            detected_generics.append("Benzoyl Peroxide")
+        if "ketoconazole" in full_text_lower:
+            detected_generics.append("Ketoconazole")
+        if "zinc pyrithione" in full_text_lower or "zpto" in full_text_lower:
+            detected_generics.append("Zinc Pyrithione")
+        if "clindamycin" in full_text_lower:
+            detected_generics.append("Clindamycin")
+        if "paracetamol" in full_text_lower or "acetaminophen" in full_text_lower:
+            detected_generics.append("Paracetamol")
+        if "amoxicillin" in full_text_lower:
+            detected_generics.append("Amoxicillin")
+
+        # 4. Detect strengths (e.g. 3.5%, 2%, 1%, 650 mg, 500 mg)
+        pct_matches = re.findall(r'(\d+(?:\.\d+)?\s*%)', " ".join(ocr_lines))
+        mg_matches = re.findall(r'(\d+(?:\.\d+)?\s*(?:mg|g|ml))', " ".join(ocr_lines), re.IGNORECASE)
+        if pct_matches:
+            detected_strength = " + ".join(pct_matches)
+        elif mg_matches:
+            detected_strength = mg_matches[0]
+
+        # 5. Safe matching against database medicines (Prevents shampoos matching oral tablets/capsules)
+        GENERIC_STOP_WORDS = {
+            "complex", "vitamin", "solution", "capsule", "tablet", "injection",
+            "ointment", "shampoo", "cream", "cleanser", "repair", "hair",
+            "acid", "salt", "water", "care", "forte", "plus", "extra", "ultra",
+            "relief", "daily", "science", "formula", "product", "bottle"
+        }
+
+        is_topical = "topical" in route.lower()
+
+        for med in db_medicines:
+            med_is_oral = med.dosage_form in ["Tablet", "Capsule", "Soft Gelatin Capsule", "Oral Liquid", "Syrup"]
+            # Enforce route compatibility: Topical items NEVER match oral capsules/tablets
+            if is_topical and med_is_oral:
+                continue
+            if not is_topical and not med_is_oral:
+                continue
+
+            # Check normalized brand match
+            if med.brand_name:
+                norm_brand = re.sub(r'[^a-z0-9]', '', med.brand_name.lower())
+                if norm_brand and len(norm_brand) > 3 and (norm_brand in norm_full or norm_brand in full_text_lower):
+                    name_tokens = [t for t in re.sub(r'[^a-z0-9]', ' ', med.name.lower()).split() if len(t) > 3 and t not in GENERIC_STOP_WORDS]
+                    if any(t in full_text_lower for t in name_tokens):
+                        matched_med = med
+                        break
+
+            # Check brand variants
+            for b in med.brands.all():
+                norm_b = re.sub(r'[^a-z0-9]', '', b.brand_name.lower())
+                if norm_b and len(norm_b) > 3 and (norm_b in norm_full or norm_b in full_text_lower):
+                    matched_med = med
+                    break
+            if matched_med:
+                break
+
+            # Check specific medicine name tokens
+            med_tokens = [re.sub(r'[^a-z0-9]', '', t) for t in med.name.lower().split() if len(t) > 4 and t not in GENERIC_STOP_WORDS]
+            if len(med_tokens) >= 2 and all(tok in norm_full for tok in med_tokens[:2]):
+                matched_med = med
+                break
+
+        # 6. Formulate final medicine name and clinical instructions
         if matched_med:
             detected_name = matched_med.name
             detected_brand = matched_med.brand_name
@@ -338,7 +382,9 @@ def parse_medical_scan_data(raw_text: str, scan_category: str = "AUTO", ocr_line
             variant_title = ""
             if "sali-cinamide" in full_text_lower or "salicinamide" in full_text_lower:
                 variant_title = "2% Sali-Cinamide Anti-Acne"
-            
+            elif "maleic" in full_text_lower or "bond repair" in full_text_lower:
+                variant_title = "Maleic Bond Repair Complex 3.5%"
+
             actives_str = " + ".join(detected_generics) if detected_generics else "Active Formulations"
             if variant_title:
                 detected_name = f"{brand_prefix} {variant_title} {detected_form}".strip()
@@ -348,9 +394,18 @@ def parse_medical_scan_data(raw_text: str, scan_category: str = "AUTO", ocr_line
             generic_display = " + ".join(detected_generics) if detected_generics else "Verified Active Formulation"
             strength_display = detected_strength or "Standard Therapeutic Strength"
             dosage_form_display = detected_form
-            special_inst = "For external topical application. Apply to damp skin, gently massage, and rinse thoroughly."
-            uses = "Topical therapeutic formulation for skin health, active acne reduction, and sebum regulation."
-            how = "Active ingredients penetrate skin surface to cleanse pores, soothe inflammation, and target localized dermatological conditions."
+            if "shampoo" in detected_form.lower():
+                special_inst = "For external hair and scalp use only. Apply to wet scalp and hair, lather gently for 2-3 minutes, and rinse thoroughly with clear water. Avoid contact with eyes."
+                uses = "Therapeutic hair and scalp formulation for strengthening hair bonds, reducing breakage, and repairing damaged hair fibers."
+                how = "Active ingredients penetrate hair fibers to rebuild keratin bonds and protect the scalp."
+            else:
+                special_inst = "For external topical application. Apply to damp skin, gently massage, and rinse thoroughly."
+                uses = "Topical therapeutic formulation for skin health, active acne reduction, and sebum regulation."
+                how = "Active ingredients penetrate skin surface to cleanse pores, soothe inflammation, and target localized dermatological conditions."
+
+        dose_text = "Apply coin-sized amount to wet scalp/hair" if "shampoo" in detected_form.lower() else "Apply as directed (e.g. 1 coin-sized amount)"
+        freq_text = "2 to 3 times weekly as needed" if "shampoo" in detected_form.lower() else "Twice daily (Morning & Night)"
+        dur_text = "As part of regular hair care routine" if "shampoo" in detected_form.lower() else "As recommended by dermatologist"
 
         extracted_items.append({
             "matched_medicine": matched_med,
@@ -360,9 +415,9 @@ def parse_medical_scan_data(raw_text: str, scan_category: str = "AUTO", ocr_line
             "active_ingredient": ", ".join(detected_generics) if detected_generics else generic_display,
             "strength": strength_display,
             "dosage_form": dosage_form_display,
-            "prescribed_dose": "Apply as directed (e.g. 1 coin-sized amount)",
-            "frequency": "Twice daily (Morning & Night)",
-            "duration": "As recommended by dermatologist",
+            "prescribed_dose": dose_text,
+            "frequency": freq_text,
+            "duration": dur_text,
             "route_of_administration": route,
             "special_instructions": special_inst,
             "confidence_score": matched_score,
