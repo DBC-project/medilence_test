@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: medisense_db
+    environment:
+      POSTGRES_DB: medisense_db
+      POSTGRES_USER: medisense_user
+      POSTGRES_PASSWORD: medisense_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medisense_user -d medisense_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: medisense_redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medisense_backend
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py seed_medicines &&
+             gunicorn medisense.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    volumes:
+      - ./backend:/app
+      - backend_media:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_DEBUG=False
+      - DJANGO_SECRET_KEY=prod-secret-key-medisense-2026
+      - USE_POSTGRES=True
+      - DATABASE_URL=postgres://medisense_user:medisense_password@db:5432/medisense_db
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: medisense_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  backend_media:
+

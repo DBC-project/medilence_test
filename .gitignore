@@ -1,0 +1,38 @@
+# Environment variables & secrets (CRITICAL: Never commit API keys)
+.env
+.env.local
+.env.*.local
+*.env
+backend/.env
+frontend/.env
+
+# Node.js
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python & Django
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+backend/db.sqlite3
+backend/staticfiles/
+backend/media/prescriptions/originals/*
+backend/media/prescriptions/pages/*
+backend/media/prescriptions/processed/*
+!backend/media/.gitkeep
+
+# IDEs & System
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
