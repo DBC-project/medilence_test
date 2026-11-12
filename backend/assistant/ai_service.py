@@ -10,6 +10,7 @@ Real Free AI Integration:
 
 import os
 import re
+import cv2
 import json
 import base64
 import requests
